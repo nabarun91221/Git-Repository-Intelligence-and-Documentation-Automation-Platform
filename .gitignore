@@ -7,6 +7,19 @@ node_modules/
 !.env.example
 !.env.*.example
 
+# Private keys, certificates, and credential exports
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+secrets/
+credentials/
+service-account*.json
+firebase-adminsdk-*.json
+
 # Build output and framework caches
 .next/
 out/
