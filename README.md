@@ -1,246 +1,253 @@
 # Git-Repository-Intelligence-and-Documentation-Automation-Platform
 # CodeAtlas
 
-<p align="center">
-  <strong>An AI-Powered Repository Intelligence Platform</strong>
-</p>
+<div align="center">
 
-<p align="center">
-  Transform Git repositories into structured knowledge through static code analysis, semantic indexing, and AI-driven documentation.
-</p>
+### **AI-Powered Repository Intelligence Platform**
+
+*Transform Git repositories into structured knowledge with automated documentation, architecture discovery, semantic search, and AI-powered insights.*
+
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](#)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](#)
+[![Status](https://img.shields.io/badge/Status-Under%20Development-orange.svg)](#)
+
+</div>
 
 ---
 
 ## Overview
 
-Modern software projects evolve rapidly, yet their documentation often falls behind. As repositories grow in size and complexity, onboarding new developers, understanding system architecture, and maintaining accurate technical documentation become increasingly difficult.
+Modern software projects evolve rapidly, yet their documentation often becomes obsolete within weeks. As repositories grow in complexity, understanding architecture, tracing dependencies, onboarding developers, or navigating unfamiliar codebases becomes increasingly challenging.
 
-**CodeAtlas** addresses this challenge by transforming source code into a structured knowledge base. Rather than treating a repository as plain text, it performs deep static analysis to understand its architecture, dependencies, APIs, modules, and relationships before leveraging Large Language Models to generate accurate, contextual documentation.
+**CodeAtlas** addresses this challenge by transforming source code into a structured, searchable knowledge base.
 
-The result is a continuously understandable repository that serves both developers and AI systems.
+Rather than relying solely on Large Language Models, CodeAtlas first performs deep static analysis of the repository—understanding its architecture, dependencies, symbols, APIs, configuration, and relationships. This structured understanding is then combined with semantic search and AI reasoning to generate accurate, maintainable, and context-aware documentation.
 
----
-
-## Vision
-
-CodeAtlas aims to become an intelligent layer above every software repository.
-
-Instead of simply answering questions about code, it builds a semantic understanding of the entire codebase, enabling developers to explore architecture, understand implementation details, generate documentation, visualize dependencies, and interact with repositories through natural language.
-
-Documentation is not the product—it is one outcome of repository intelligence.
+The result is a living representation of your codebase that continuously evolves alongside your project.
 
 ---
 
-## Core Features
+# Vision
 
-### Repository Intelligence
+To build an intelligent platform that understands software repositories the way experienced engineers do—not merely as collections of files, but as interconnected systems composed of architecture, business logic, dependencies, and developer intent.
 
-- Repository cloning and synchronization
-- Multi-language project analysis
-- Automatic framework and technology detection
-- Dependency graph generation
-- Repository metadata extraction
-- Module relationship analysis
-- Architectural understanding
+CodeAtlas aims to become the central knowledge layer for software projects, enabling teams to understand, document, maintain, and evolve codebases with confidence.
 
-### AI Documentation
+---
 
-- Project documentation generation
-- API documentation
-- Architecture documentation
-- Module documentation
-- Environment configuration documentation
-- Authentication flow documentation
-- Database documentation
-- Developer onboarding guides
+# Key Capabilities
 
-### Static Code Analysis
+### 📚 Intelligent Documentation
 
-- Abstract Syntax Tree (AST) parsing
-- Symbol extraction
-- Function analysis
-- Class and interface analysis
-- Route discovery
-- Import/export mapping
-- Dependency resolution
+Automatically generate comprehensive documentation, including:
 
-### Semantic Search
+- Project Overview
+- README
+- Module Documentation
+- API Reference
+- Database Documentation
+- Authentication Flow
+- Environment Variables
+- Deployment Guide
+- Configuration Reference
 
-- AI-powered repository search
-- Context-aware code retrieval
-- Repository knowledge base
-- Vector embeddings
-- Natural language repository querying
+---
 
-### Visualization
+### 🏗 Architecture Discovery
 
-- Architecture diagrams
-- Dependency graphs
-- Module relationships
-- Call graphs
-- Mermaid diagram generation
+Analyze repository structure to generate:
 
-### Developer Experience
+- System Architecture
+- Module Relationships
+- Service Dependencies
+- Package Hierarchies
+- Mermaid Diagrams
+- Component Interaction Graphs
 
-- GitHub App integration
-- Incremental repository indexing
-- Background analysis jobs
-- Version-aware documentation
-- Repository insights dashboard
+---
+
+### 🌳 Repository Intelligence
+
+Build a deep understanding of the codebase by extracting:
+
+- Classes
+- Interfaces
+- Functions
+- Routes
+- Middleware
+- Services
+- Controllers
+- Models
+- Configuration
+- Dependency Graphs
+
+---
+
+### 🔍 Semantic Code Search
+
+Search repositories using natural language instead of filenames.
+
+Examples:
+
+> "Where is JWT authentication implemented?"
+
+> "How does the payment workflow work?"
+
+> "Show me all MongoDB models."
+
+> "Where are environment variables validated?"
+
+---
+
+### 🤖 AI Repository Assistant
+
+Interact with your repository conversationally.
+
+Examples:
+
+- Explain project architecture
+- Summarize modules
+- Describe authentication flow
+- Generate onboarding guides
+- Answer implementation questions
+- Locate business logic
+- Explain dependencies
+
+---
+
+### 📈 Repository Insights
+
+Generate meaningful insights such as:
+
+- Technology Stack
+- Dependency Analysis
+- Code Metrics
+- Dead Code Detection
+- Circular Dependencies
+- Complexity Reports
+- Documentation Coverage
+- Project Health
 
 ---
 
 # How It Works
 
+```text
+Git Repository
+        │
+        ▼
+Repository Cloning
+        │
+        ▼
+Framework Detection
+        │
+        ▼
+Repository Scanning
+        │
+        ▼
+AST Parsing
+        │
+        ▼
+Symbol Extraction
+        │
+        ▼
+Dependency Analysis
+        │
+        ▼
+Metadata Generation
+        │
+        ▼
+Semantic Chunking
+        │
+        ▼
+Embeddings
+        │
+        ▼
+Knowledge Base
+        │
+        ▼
+AI Documentation
+Architecture Diagrams
+Repository Chat
+Semantic Search
 ```
-                    Git Repository
-                           │
-                           ▼
-                 Repository Cloning
-                           │
-                           ▼
-                 Repository Scanner
-                           │
-                           ▼
-             Framework & Language Detection
-                           │
-                           ▼
-                  Static Code Analysis
-                           │
-                           ▼
-                      AST Parsing
-                           │
-                           ▼
-                 Symbol Extraction
-                           │
-                           ▼
-                 Dependency Analysis
-                           │
-                           ▼
-                  Semantic Chunking
-                           │
-                           ▼
-                Repository Knowledge Base
-                           │
-                           ▼
-                  Vector Embeddings
-                           │
-                           ▼
-                  Large Language Model
-                           │
-                           ▼
-        Documentation • Search • Diagrams • Insights
-```
-
-Unlike traditional AI code assistants that rely solely on prompt engineering, CodeAtlas first constructs a structured representation of the repository. This significantly improves the relevance, consistency, and accuracy of generated outputs while reducing hallucinations.
 
 ---
 
-# Architecture
+# Core Features
 
-CodeAtlas is organized as a pipeline where each stage enriches the repository with additional semantic information.
-
-```
-Repository
-    │
-    ▼
-Scanner
-    │
-    ▼
-Parser
-    │
-    ▼
-Knowledge Extraction
-    │
-    ▼
-Semantic Index
-    │
-    ▼
-Repository Intelligence Layer
-    │
-    ▼
-AI Services
-```
-
-This layered architecture allows new capabilities to be introduced without changing the core analysis engine.
-
----
-
-# Planned Capabilities
-
-- AI-powered repository chat
-- Automated README generation
-- Code architecture reports
-- REST API documentation
-- GraphQL schema documentation
-- Dependency visualization
-- Repository health analysis
-- Dead code detection
-- Security insights
-- Pull request impact analysis
-- Intelligent code navigation
-- Cross-repository semantic search
-- Repository comparison
-- Incremental documentation updates
+- GitHub OAuth Authentication
+- GitHub App Integration
+- Repository Synchronization
+- Multi-language Repository Analysis
+- AST-based Code Understanding
+- Dependency Graph Generation
+- AI-powered Documentation
+- Automatic README Generation
+- API Documentation
+- Mermaid Diagram Generation
+- Semantic Vector Search
+- Repository Chat Assistant
+- Incremental Repository Indexing
+- Background Processing
+- Version-aware Documentation
+- Extensible Plugin Architecture
 
 ---
 
 # Technology Stack
 
-### Backend
+## Backend
 
 - Node.js
 - Express.js
 - TypeScript
+- MongoDB
+- Redis
 
-### Analysis Engine
+## Repository Analysis
 
 - Tree-sitter
-- Static Code Analysis
-- Abstract Syntax Trees (AST)
+- ts-morph
+- Fast-Glob
+- Simple-Git
 
-### AI
+## AI
 
-- Large Language Models
+- Ollama
+- OpenAI Compatible Models
 - Vector Embeddings
 - Retrieval-Augmented Generation (RAG)
 
-### Storage
+## Infrastructure
 
-- MongoDB
-- Vector Database
-
-### Integrations
-
-- GitHub OAuth
+- Docker
 - GitHub Apps
-- GitHub Webhooks
+- GitHub OAuth
+- BullMQ
+- Webhooks
 
 ---
 
 # Design Principles
 
-CodeAtlas is built around a few guiding principles.
+CodeAtlas is built upon several core principles:
 
-### Repository First
+### Documentation should be derived, not written.
 
-Every insight originates from the repository itself through deterministic analysis before AI is involved.
+Documentation generated from the source code remains consistent, accurate, and maintainable as the project evolves.
 
-### AI as an Enhancement
+### Understanding precedes generation.
 
-Large Language Models enhance structured repository knowledge rather than replacing traditional code analysis.
+Rather than asking an LLM to interpret raw repositories directly, CodeAtlas first constructs a structured representation of the codebase through static analysis, symbol extraction, dependency mapping, and semantic indexing.
 
-### Explainability
+### Incremental by design.
 
-Generated documentation should be traceable to actual source code and repository metadata.
+Only modified portions of a repository are reprocessed, enabling efficient synchronization for large projects.
 
-### Scalability
+### AI should augment, not replace.
 
-The indexing pipeline is designed to support repositories ranging from small personal projects to large enterprise codebases.
-
-### Incremental Intelligence
-
-Repositories should only be re-analyzed when meaningful changes occur, minimizing unnecessary computation.
+Artificial intelligence is used to explain, summarize, and organize repository knowledge—not to invent it.
 
 ---
 
@@ -248,51 +255,65 @@ Repositories should only be re-analyzed when meaningful changes occur, minimizin
 
 ### Phase I
 
-- Repository cloning
-- GitHub integration
-- Project scanning
-- Framework detection
-- Documentation generation
+- Repository Management
+- GitHub Integration
+- Repository Scanner
+- Framework Detection
 
 ### Phase II
 
-- AST parsing
-- Symbol extraction
-- Dependency graphs
-- Semantic indexing
+- AST Parsing
+- Symbol Extraction
+- Dependency Graph
+- Metadata Generation
 
 ### Phase III
 
-- AI repository chat
-- Architecture diagrams
-- Context-aware search
-- Knowledge graph
+- Semantic Search
+- Vector Indexing
+- AI Repository Chat
+- Documentation Generation
 
 ### Phase IV
 
-- Pull request intelligence
-- Incremental indexing
-- Repository analytics
-- Enterprise collaboration
+- Architecture Visualization
+- API Documentation
+- Database Documentation
+- Mermaid Diagram Generation
+
+### Phase V
+
+- Pull Request Analysis
+- Incremental Documentation
+- Code Quality Insights
+- Security Analysis
+- Multi-Repository Intelligence
 
 ---
 
-# Project Status
+# Why CodeAtlas?
 
-CodeAtlas is currently under active development.
+Traditional documentation tools primarily generate text from templates or comments.
 
-The initial focus is on building a robust repository analysis engine capable of understanding software projects at a structural level. Future iterations will extend this foundation with advanced AI capabilities, visualization tools, and intelligent developer workflows.
+CodeAtlas takes a fundamentally different approach.
 
----
+It first understands the repository through static analysis, constructs a semantic knowledge graph of the codebase, enriches it with contextual metadata, and only then employs AI to generate meaningful explanations and documentation.
 
-## Contributing
-
-Contributions, ideas, feature requests, and discussions are always welcome.
-
-Whether you're interested in static analysis, compiler design, AI systems, developer tooling, or documentation generation, your contributions can help shape the future of CodeAtlas.
+This architecture produces documentation that is grounded in the source code, easier to maintain, and significantly more reliable than approaches based solely on language models.
 
 ---
 
-<p align="center">
-Built with the belief that every repository deserves living documentation and every developer deserves to understand the software they build.
-</p>
+# Contributing
+
+Contributions, discussions, feature requests, and suggestions are always welcome.
+
+If you're interested in repository intelligence, developer tooling, static analysis, or AI-assisted software engineering, we'd love to collaborate.
+
+
+<div align="center">
+
+### *"Understanding software is the first step toward documenting it."*
+
+**CodeAtlas — Turning repositories into knowledge.**
+
+</div>
