@@ -8,4 +8,6 @@ gitRouter.get("/github/app/status", verifyRequestJwt, GithubController.gitAppIns
 gitRouter.get("/repositories", verifyRequestJwt, GithubController.fetchUserRepo);
 gitRouter.get("/repositories/:repositoryId", verifyRequestJwt, GithubController.getRepositoryDetails);
 gitRouter.post("/repositories/:repositoryId/import", verifyRequestJwt, GithubController.importRepository);
+
+gitRouter.get("/internal/github/installation/token/:installationId", GithubController.getInstallationTokenForWorker)
 export default gitRouter;

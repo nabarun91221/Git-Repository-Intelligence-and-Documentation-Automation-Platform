@@ -1,81 +1,64 @@
-import crypto from "crypto";
-
+import "dotenv/config.js"
+import { App } from "@octokit/app";
+import { Octokit } from "@octokit/rest";
+import { Webhooks } from "@octokit/webhooks";
 import OauthAccount from "../../auth/models/oauthAccount.model.js";
 import GithubAppStatus from "../models/githubAppStatus.model.js";
 import Repository from "../models/repository.model.js";
 import fs from "node:fs";
-import jwt from "jsonwebtoken";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-
+import RabbitMqUtils from "../../../utils/rabbitMq.utils.js";
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const privateKeyPath = resolve(
     currentDirectory,
     "../../../secrets/codeatlasautomation.2026-07-10.private-key.pem",
 );
-const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+let githubApp;
+let webhooks;
 
-function createGitHubAppJwt()
+function getGitHubApp()
 {
-    const appIssuer = process.env.GITHUB_APP_CLIENT_ID || process.env.GITHUB_CLIENT_ID || process.env.GITHUB_APP_ID;
-    if (!appIssuer) {
-        throw new Error("GitHub App client ID is not configured.");
+    if (githubApp) return githubApp;
+
+    const appId = process.env.GITHUB_APP_CLIENT_ID
+    console.log(appId)
+    if (!appId) {
+        throw new Error("GITHUB_APP_CLIENT_ID must be configured.");
     }
 
-    return jwt.sign(
-        {
-            iat: Math.floor(Date.now() / 1000) - 60,
-            exp: Math.floor(Date.now() / 1000) + 9 * 60,
-            iss: appIssuer,
-        },
-        privateKey,
-        { algorithm: "RS256" },
-    );
+    const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+
+    githubApp = new App({ appId, privateKey, Octokit });
+    return githubApp;
+}
+
+function getWebhooks()
+{
+    if (webhooks) return webhooks;
+    if (!process.env.GITHUB_WEBHOOK_SECRET) {
+        throw new Error("GITHUB_WEBHOOK_SECRET is not configured.");
+    }
+
+    webhooks = new Webhooks({ secret: process.env.GITHUB_WEBHOOK_SECRET });
+    return webhooks;
 }
 
 async function getInstallationToken(installationId)
 {
-    const response = await fetch(
-        `https://api.github.com/app/installations/${installationId}/access_tokens`,
-        {
-            method: "POST",
-            headers: {
-                Accept: "application/vnd.github+json",
-                Authorization: `Bearer ${createGitHubAppJwt()}`,
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        },
-    );
-    const data = await response.json();
-
-    if (!response.ok || !data.token) {
-        const error = new Error(data.message || "GitHub rejected the App authentication request.");
-        error.status = response.status;
-        throw error;
-    }
-
-    return data.token;
+    const authentication = await getGitHubApp().octokit.auth({
+        type: "installation",
+        installationId: Number(installationId),
+    });
+    return authentication.token;
 }
 
 async function getInstallationRepositories(installationId)
 {
-    const installationToken = await getInstallationToken(installationId);
-    const response = await fetch("https://api.github.com/installation/repositories?per_page=100", {
-        headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${installationToken}`,
-            "X-GitHub-Api-Version": "2022-11-28",
-        },
+    const octokit = await getGitHubApp().getInstallationOctokit(Number(installationId));
+    return octokit.paginate(octokit.rest.apps.listReposAccessibleToInstallation, {
+        per_page: 100,
     });
-    const data = await response.json();
-
-    if (!response.ok) {
-        const error = new Error(data.message || "GitHub could not return installation repositories.");
-        error.status = response.status;
-        throw error;
-    }
-
-    return data.repositories;
 }
 
 function toRepositoryDocument(repository, owner, installationId)
@@ -148,25 +131,22 @@ class GithubControllers
 
     githubWebhook = async (req, res) =>
     {
-        const secret = process.env.GITHUB_WEBHOOK_SECRET;
         const signature = req.get("x-hub-signature-256");
         const rawBody = req.body;
 
-        if (!secret || !signature || !Buffer.isBuffer(rawBody)) {
+        if (!signature || !Buffer.isBuffer(rawBody)) {
             return res.status(401).json({ message: "Webhook signature verification failed." });
         }
 
-        const expectedSignature = `sha256=${crypto
-            .createHmac("sha256", secret)
-            .update(rawBody)
-            .digest("hex")}`;
-        const receivedSignature = Buffer.from(signature);
-        const expectedSignatureBuffer = Buffer.from(expectedSignature);
+        let isValidSignature;
+        try {
+            isValidSignature = await getWebhooks().verify(rawBody.toString("utf8"), signature);
+        } catch (error) {
+            console.error("GitHub webhook verification failed", { message: error.message });
+            return res.status(401).json({ message: "Webhook signature verification failed." });
+        }
 
-        if (
-            receivedSignature.length !== expectedSignatureBuffer.length ||
-            !crypto.timingSafeEqual(receivedSignature, expectedSignatureBuffer)
-        ) {
+        if (!isValidSignature) {
             return res.status(401).json({ message: "Webhook signature verification failed." });
         }
 
@@ -181,9 +161,6 @@ class GithubControllers
         if (!payload.installation?.id) {
             return res.status(204).send();
         }
-        console.log(event);
-        console.log(payload.action);
-
         const installationId = String(payload.installation.id);
 
         if (event === "installation" && payload.action === "created") {
@@ -271,7 +248,8 @@ class GithubControllers
         }
     };
 
-    getRepositoryDetails = async (req, res) => {
+    getRepositoryDetails = async (req, res) =>
+    {
         const repositoryId = Number(req.params.repositoryId);
         if (!Number.isSafeInteger(repositoryId)) {
             return res.status(400).json({ message: "repositoryId must be a valid GitHub repository ID." });
@@ -314,7 +292,8 @@ class GithubControllers
         }
     };
 
-    importRepository = async (req, res) => {
+    importRepository = async (req, res) =>
+    {
         const repositoryId = Number(req.params.repositoryId);
         const mode = req.body.mode;
 
@@ -330,14 +309,34 @@ class GithubControllers
             return res.status(404).json({ message: "No verified GitHub App installation was found." });
         }
 
+        let repository;
         try {
             const repositories = await getInstallationRepositories(installation.installationId);
-            const repository = repositories.find((item) => Number(item.id) === repositoryId);
+            repository = repositories.find((item) => Number(item.id) === repositoryId);
             if (!repository) {
                 return res.status(404).json({ message: "This repository is not accessible to the GitHub App." });
             }
+        } catch (error) {
+            console.error("GitHub repository verification failed", {
+                repositoryId,
+                status: error.status,
+                message: error.message,
+            });
+            return res.status(502).json({
+                message: "GitHub could not verify this repository before import.",
+                githubStatus: error.status,
+            });
+        }
 
-            const savedRepository = await Repository.findOneAndUpdate(
+        let savedRepository;
+        try {
+            const job = {
+                userId: req?.user?.sub,
+                repositoryId: repositoryId,
+                installationId: installation?.installationId,
+                url: repository.url,
+            }
+            savedRepository = await Repository.findOneAndUpdate(
                 { githubRepositoryId: repositoryId },
                 {
                     $set: {
@@ -351,20 +350,60 @@ class GithubControllers
                 { upsert: true, new: true, runValidators: true },
             );
 
-            return res.status(201).json({
-                id: savedRepository._id,
-                githubRepositoryId: savedRepository.githubRepositoryId,
-                importMode: savedRepository.importMode,
-                status: savedRepository.indexing.status,
-                message: "Repository imported and queued for processing.",
-            });
+            const queueRes = await RabbitMqUtils.publishToQueue("repo-analysis", job)
+            if (!queueRes) throw new Error("RabbitMQ did not accept the repository-analysis job.");
+
         } catch (error) {
-            return res.status(502).json({
-                message: "GitHub could not verify this repository before import.",
-                githubStatus: error.status,
+            console.error("Repository import setup failed", {
+                repositoryId,
+                message: error.message,
+            });
+
+            if (savedRepository) {
+                await Repository.updateOne(
+                    { _id: savedRepository._id },
+                    {
+                        $set: {
+                            "indexing.status": "FAILED",
+                            "indexing.lastError": error.message,
+                        },
+                    },
+                ).catch((updateError) => console.error("Could not record repository import failure", updateError));
+            }
+
+            return res.status(503).json({
+                message: "Repository could not be queued for analysis. Ensure RabbitMQ is running and the backend is connected.",
             });
         }
+
+        return res.status(201).json({
+            id: savedRepository._id,
+            githubRepositoryId: savedRepository.githubRepositoryId,
+            importMode: savedRepository.importMode,
+            status: savedRepository.indexing.status,
+            message: "Repository imported and queued for processing.",
+        });
     };
+
+    getInstallationTokenForWorker = async (req, res) =>
+    {
+        const internalWorkerKey = process.env.INTERNAL_WORKER_KEY || process.env.INTERNAl_WORKER_KEY;
+        if (!internalWorkerKey || req.get("X-Internal-Key") !== internalWorkerKey) {
+            return res.status(401).send("Unauthorized");
+        }
+
+        const { installationId } = req.params
+        const token = await getInstallationToken(installationId)
+        if (!token) {
+            return res.status(502).json({
+                message: "Token is as empty",
+            });
+        }
+        return res.status(200).json({
+            message: "Use the token for accessing github app exposed endpoints",
+            token: token
+        });
+    }
 }
 
 export default new GithubControllers();

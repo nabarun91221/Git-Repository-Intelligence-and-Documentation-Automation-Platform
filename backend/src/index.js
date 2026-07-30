@@ -6,6 +6,7 @@ import connectMongoDb from "./core/configs/mongoDb.config.js";
 import authRouter from "./core/modules/auth/routes/auth.routes.js"
 import gitRouter from "./core/modules/github/routes/github.route.js";
 import GithubController from "./core/modules/github/controllers/github.controller.js";
+import { connectRabbit } from "./core/configs/rabbitMq.config.js";
 configDotenv()
 const PORT = process.env.PORT || 8080;
 const app = express();
@@ -21,12 +22,19 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/api", authRouter);
 app.use("/api", gitRouter);
-app.listen(PORT, async () =>
+const startServer = async () =>
 {
     try {
         await connectMongoDb();
-        console.log(`Server running at http://localhost:${PORT}`);
+        await connectRabbit();
+        app.listen(PORT, () =>
+        {
+            console.log(`Server running at http://localhost:${PORT}`);
+        });
     } catch (error) {
-        console.log(error);
+        console.error("Backend startup failed", error);
+        process.exit(1);
     }
-});
+};
+
+await startServer();
