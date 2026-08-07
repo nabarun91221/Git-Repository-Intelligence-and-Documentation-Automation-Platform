@@ -1,5 +1,15 @@
 import { Schema, model } from "mongoose";
-
+export const IndexingStatus = Object.freeze({
+    NOT_STARTED: "NOT_STARTED",
+    QUEUED: "QUEUED",
+    CLONING: "CLONING",
+    SCANNING: "SCANNING",
+    PARSING: "PARSING",
+    INDEXING: "INDEXING",
+    DOCUMENTING: "DOCUMENTING",
+    COMPLETED: "COMPLETED",
+    FAILED: "FAILED",
+});
 const repositorySchema = new Schema(
     {
         owner: {
@@ -85,17 +95,7 @@ const repositorySchema = new Schema(
         indexing: {
             status: {
                 type: String,
-                enum: [
-                    "NOT_STARTED",
-                    "QUEUED",
-                    "CLONING",
-                    "SCANNING",
-                    "PARSING",
-                    "INDEXING",
-                    "DOCUMENTING",
-                    "COMPLETED",
-                    "FAILED",
-                ],
+                enum: Object.values(IndexingStatus),
                 default: "NOT_STARTED",
             },
 

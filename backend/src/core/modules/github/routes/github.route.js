@@ -6,8 +6,10 @@ const gitRouter = Router();
 gitRouter.post("/github/install", verifyRequestJwt, GithubController.gitAppInstallVerification);
 gitRouter.get("/github/app/status", verifyRequestJwt, GithubController.gitAppInstallStatus);
 gitRouter.get("/repositories", verifyRequestJwt, GithubController.fetchUserRepo);
+gitRouter.get("/repositories/imported", verifyRequestJwt, GithubController.listImportedRepositories);
 gitRouter.get("/repositories/:repositoryId", verifyRequestJwt, GithubController.getRepositoryDetails);
 gitRouter.post("/repositories/:repositoryId/import", verifyRequestJwt, GithubController.importRepository);
+gitRouter.post("/repositories/:repositoryId/retry", verifyRequestJwt, GithubController.retryRepositoryImport);
 
 gitRouter.get("/internal/github/installation/token/:installationId", GithubController.getInstallationTokenForWorker)
 export default gitRouter;

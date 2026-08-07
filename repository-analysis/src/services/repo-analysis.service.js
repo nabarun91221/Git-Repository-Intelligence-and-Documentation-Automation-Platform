@@ -8,8 +8,27 @@ import ContentExtractor from "../utils/content.extractor.js"
 import parserRegistry from "../parsers/index.js"
 import { buildKnowledgePipeline } from "../knowledge-pipeline.js"
 import { createArchitectureDiagramService } from "../architecture-diagram/index.js"
+import DigestionPipeline from "../rag-pipeline/digestion-pipeline.js"
+import retrievalPipeline from "../rag-pipeline/retrieval-pipeline.js"
 class RepoAnalysisService
 {
+    async #updateIndexingStatus(job, payload)
+    {
+        const internalWorkerKey = process.env.INTERNAL_WORKER_KEY || process.env.INTERNAl_WORKER_KEY;
+        const backendUrl = process.env.BACKEND_INTERNAL_URL || "http://localhost:8080";
+        if (!job?.userId || !job?.repositoryId || !internalWorkerKey) return;
+
+        const response = await fetch(
+            `${backendUrl}/api/repostatus/update/${job.userId}/${job.repositoryId}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Internal-Key": internalWorkerKey },
+                body: JSON.stringify(payload),
+            },
+        );
+        if (!response.ok) throw new Error(`Could not update indexing status (HTTP ${response.status}).`);
+    }
+
     async #scanRepository(repoPath)
     {
         const files = await FileClassificationAndProcessingService.scanDirectory(repoPath);
@@ -51,6 +70,7 @@ class RepoAnalysisService
 
             if (!internalWorkerKey) throw new Error("INTERNAL_WORKER_KEY is missing");
             if (!job.installationId) throw new Error("installation id is missing");
+            await this.#updateIndexingStatus(job, { status: "CLONING", progress: 5, startedAt: new Date().toISOString(), lastError: null });
 
             const githubAppInstallationTokenResponse = await fetch(
                 `${backendUrl}/api/internal/github/installation/token/${job.installationId}`,
@@ -90,33 +110,48 @@ class RepoAnalysisService
                 console.log("Git repo fetched successfully..")
             }
 
+            await this.#updateIndexingStatus(job, { status: "SCANNING", progress: 25 });
             const metadata = await this.#scanRepository(path.join(targetPath))
             if (!metadata && metadata.length) throw new Error("File classification failed")
 
             else console.log("Metadata extracted successfully from files of the repo.")
 
+            await this.#updateIndexingStatus(job, { status: "PARSING", progress: 45 });
             console.log("parsing files:")
             const asts = await this.#extractAsts(metadata);
-            console.dir(asts[3], { depth: null, colors: true })
-            console.log("ASTs length: ", asts.length)
+            // console.dir(asts[3], { depth: null, colors: true })
+            // console.log("ASTs length: ", asts.length)
 
             const { resolvedModel, graph, navigator } = buildKnowledgePipeline(asts, {
                 repositoryId: String(job.repositoryId),
             });
             console.log(`Knowledge graph built: ${resolvedModel.symbols.length} symbols, ${graph.nodes.size} nodes, ${graph.edges.length} edges.`);
-            const diagramService = createArchitectureDiagramService(navigator);
-            // for frontend
-            const diagram = diagramService.build({
-                depth: 2,
-                maxNodes: 80,
-            });
-            //server console showcase
-            const mermaidDiagram = diagramService.toMermaid({
-                title: "Repository Architecture",
-                maxNodes: 80,
-            });
+            // console.log("resolvedModel.symbols", resolvedModel.symbols)
+            // console.log("resolvedModel.files:", resolvedModel.files)
+            // console.log("resolvedModel.relations:", resolvedModel.relations)
+            // console.log("resolvedModel.repositoryId:", resolvedModel.repositoryId)
+            // console.log("resolvedModel.symbolTable:", resolvedModel.symbolTable)
 
-            console.log(mermaidDiagram);
+            await this.#updateIndexingStatus(job, { status: "INDEXING", progress: 65 });
+            const digestionResponse = await DigestionPipeline.Digest(resolvedModel, graph, navigator)
+            console.log(digestionResponse);
+            // const answer = await retrievalPipeline.answer(
+            //     "Where is product CSV import handled?",
+            //     { repositoryId: "1147223916" },
+            // );
+            // console.log(`Dummy question: "Where is product CSV import handled?",\n Dummy question's Ans: ${answer.answer}`)
+            // console.dir(answer, { depth: null, colors: true })
+            // const diagramService = createArchitectureDiagramService(navigator);
+            // // for frontend
+            // const diagram = diagramService.build({
+            //     depth: 2,
+            //     maxNodes: 80,
+            // });
+            // //server console showcase
+            // const mermaidDiagram = diagramService.toMermaid({
+            //     title: "Repository Architecture",
+            //     maxNodes: 80,
+            // });
 
             const repoDeleteStatus = await FileClassificationAndProcessingService.removeProcessedRepoFromServer(targetPath)
             if (!repoDeleteStatus) {
@@ -125,9 +160,17 @@ class RepoAnalysisService
             }
             else console.log("Working clean.")
 
-        } catch (error) {
+            await this.#updateIndexingStatus(job, { status: "COMPLETED", progress: 100, completedAt: new Date().toISOString(), lastError: null });
 
+        } catch (error) {
             console.log(error)
+            await this.#updateIndexingStatus(job, {
+                status: "FAILED",
+                progress: 100,
+                completedAt: new Date().toISOString(),
+                lastError: error.message || "Repository analysis failed.",
+            }).catch((statusError) => console.error("Could not persist analysis failure status", statusError));
+            throw error;
         }
     }
 }

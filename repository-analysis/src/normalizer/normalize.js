@@ -1,6 +1,8 @@
 import { createAST } from "./schemas.js";
 
-const includeSource = () => process.env.NORMALIZER_INCLUDE_SOURCE === "true";
+// Source is part of the normalized model contract. It can be disabled only for
+// callers that explicitly opt out of source-dependent downstream features.
+const includeSource = () => process.env.NORMALIZER_INCLUDE_SOURCE !== "false";
 
 export function createLocation(node, fileId) {
     return {

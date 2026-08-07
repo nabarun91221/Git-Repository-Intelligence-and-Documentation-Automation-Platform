@@ -7,6 +7,7 @@ import authRouter from "./core/modules/auth/routes/auth.routes.js"
 import gitRouter from "./core/modules/github/routes/github.route.js";
 import GithubController from "./core/modules/github/controllers/github.controller.js";
 import { connectRabbit } from "./core/configs/rabbitMq.config.js";
+import repoStatusRouter from "./core/modules/repoStatus/repoIndexStatus.route.js";
 configDotenv()
 const PORT = process.env.PORT || 8080;
 const app = express();
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/api", authRouter);
 app.use("/api", gitRouter);
+app.use("/api", repoStatusRouter);
 const startServer = async () =>
 {
     try {

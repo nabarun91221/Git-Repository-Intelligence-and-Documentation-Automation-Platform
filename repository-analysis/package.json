@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch src/index.js",
+    "ensure-vector-index": "node src/scripts/ensure-vector-index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,6 +18,7 @@
     "express": "^5.2.1",
     "isbinaryfile": "^6.0.0",
     "mongoose": "^9.8.0",
+    "ollama": "^0.6.3",
     "tree-sitter": "^0.21.1",
     "tree-sitter-go": "^0.21.0",
     "tree-sitter-java": "^0.23.5",

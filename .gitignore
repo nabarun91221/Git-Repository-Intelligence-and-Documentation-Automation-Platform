@@ -49,3 +49,5 @@ Thumbs.db
 *.swo
 
 repositories/
+!frontend/src/app/repositories/
+!frontend/src/app/repositories/**

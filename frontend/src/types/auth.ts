@@ -32,3 +32,17 @@ export type RepositoryDetails = Repository & {
 };
 
 export type RepositoryImportMode = "INTELLIGENCE" | "DOCUMENTATION";
+
+export type IndexingStatus = "NOT_STARTED" | "QUEUED" | "CLONING" | "SCANNING" | "PARSING" | "INDEXING" | "DOCUMENTING" | "COMPLETED" | "FAILED";
+
+export type ImportedRepository = {
+  id: string;
+  name: string;
+  fullName: string;
+  language?: string | null;
+  defaultBranch: string;
+  importMode: RepositoryImportMode;
+  indexing: { status: IndexingStatus; progress: number; startedAt?: string; completedAt?: string; lastError?: string | null };
+  createdAt: string;
+  updatedAt: string;
+};

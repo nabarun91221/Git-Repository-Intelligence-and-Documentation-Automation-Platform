@@ -12,7 +12,6 @@ import {
   Clock3,
   Code2,
   ExternalLink,
-  FileText,
   GitFork,
   Globe2,
   LoaderCircle,
@@ -23,7 +22,7 @@ import {
 import { ProtectedRoute } from "@/components/protected-route";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
-import type { RepositoryDetails, RepositoryImportMode } from "@/types/auth";
+import type { ImportedRepository, RepositoryDetails, RepositoryImportMode } from "@/types/auth";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -37,6 +36,7 @@ function RepositoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState<RepositoryImportMode | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [importedRepository, setImportedRepository] = useState<ImportedRepository | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +54,10 @@ function RepositoryPage() {
         setError(axios.isAxiosError(requestError) ? "Could not load this repository from GitHub." : "Something went wrong.");
       });
 
+    api.get<ImportedRepository[]>("/repositories/imported")
+      .then(({ data }) => { if (active) setImportedRepository(data.find((item) => item.id === id) || null); })
+      .catch(() => undefined);
+
     return () => {
       active = false;
     };
@@ -67,9 +71,11 @@ function RepositoryPage() {
 
     try {
       const { data } = await api.post<{ message?: string }>(`/repositories/${id}/import`, { mode });
-      setSuccess(data.message || "Repository queued for processing.");
+      setSuccess(data.message || "Repository queued for processing. Use the link below to track progress.");
+      setImportedRepository({ id, name: repository?.name || "", fullName: repository?.fullName || "", language: repository?.language, defaultBranch: repository?.defaultBranch || "main", importMode: mode, indexing: { status: "QUEUED", progress: 0 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     } catch (requestError) {
-      setError(axios.isAxiosError(requestError) ? "Could not queue this repository. Please try again." : "Something went wrong.");
+      if (axios.isAxiosError(requestError) && requestError.response?.status === 409) setImportedRepository({ id, name: repository?.name || "", fullName: repository?.fullName || "", language: repository?.language, defaultBranch: repository?.defaultBranch || "main", importMode: mode, indexing: { status: "QUEUED", progress: 0 }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      setError(axios.isAxiosError(requestError) ? requestError.response?.data?.message || "Could not queue this repository. Please try again." : "Something went wrong.");
     } finally {
       setImporting(null);
     }
@@ -95,6 +101,7 @@ function RepositoryPage() {
 
   const topics = repository.topics || [];
   const isBusy = importing !== null;
+  const isImported = importedRepository !== null;
 
   return (
     <main className="min-h-screen bg-background">
@@ -148,6 +155,8 @@ function RepositoryPage() {
             <p className="text-sm font-semibold text-primary">Start an analysis</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Choose what to create</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">The repository is queued securely and processed in the background. You can safely leave this page after it has been queued.</p>
+            {isImported && <p className="mt-3 text-sm font-medium text-primary">Already imported · {importedRepository.indexing.status.replaceAll("_", " ")}. Track it in Imported repositories.</p>}
+            {isImported && <Link href="/imported-repositories" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">Go to imported repositories →</Link>}
           </div>
 
           <div aria-live="polite" className="mt-6 space-y-3">
@@ -163,7 +172,7 @@ function RepositoryPage() {
               highlights={["Knowledge graph", "Architecture diagram", "Future impact analysis"]}
               label="Create intelligence"
               loading={importing === "INTELLIGENCE"}
-              disabled={isBusy || repository.archived}
+              disabled={isBusy || repository.archived || isImported}
               onClick={() => importRepository("INTELLIGENCE")}
             />
           </div>

@@ -6,13 +6,32 @@ function compareById(left, right) { return left.id.localeCompare(right.id); }
  * Produces a compact module-level view from the read-only RepositoryNavigator.
  * Symbol-level graph edges are intentionally collapsed into architectural edges.
  */
-export default class ArchitectureDiagramBuilder {
-    constructor(navigator) {
+export default class ArchitectureDiagramBuilder
+{
+    constructor(navigator)
+    {
         if (!navigator) throw new Error("ArchitectureDiagramBuilder requires a RepositoryNavigator.");
         this.navigator = navigator;
     }
+    #scopedNodeIds(scopeId, depth, relations)
+    {
+        if (!scopeId) return null;
+        const subgraph = this.navigator.getSubgraph(scopeId, depth, { relations, direction: "both" });
+        return new Set(subgraph.nodes.keys());
+    }
 
-    build({ scopeId = null, depth = 2, relations = architectureRelations, maxNodes = 80, title = "Repository Architecture" } = {}) {
+    #unitFor(nodeId)
+    {
+        const node = this.navigator.getSymbol(nodeId);
+        if (!node) return null;
+        if (["Module", "ExternalDependency"].includes(node.type)) return node;
+        return this.navigator.getContainingModule(node.id)
+            || (node.type === "File" ? this.navigator.getChildren(node.id).find((child) => child.type === "Module") : null)
+            || node;
+    }
+
+    build({ scopeId = null, depth = 2, relations = architectureRelations, maxNodes = 80, title = "Repository Architecture" } = {})
+    {
         const scopedNodeIds = this.#scopedNodeIds(scopeId, depth, relations);
         const units = new Map();
         const edges = new Map();
@@ -59,18 +78,5 @@ export default class ArchitectureDiagramBuilder {
         });
     }
 
-    #scopedNodeIds(scopeId, depth, relations) {
-        if (!scopeId) return null;
-        const subgraph = this.navigator.getSubgraph(scopeId, depth, { relations, direction: "both" });
-        return new Set(subgraph.nodes.keys());
-    }
 
-    #unitFor(nodeId) {
-        const node = this.navigator.getSymbol(nodeId);
-        if (!node) return null;
-        if (["Module", "ExternalDependency"].includes(node.type)) return node;
-        return this.navigator.getContainingModule(node.id)
-            || (node.type === "File" ? this.navigator.getChildren(node.id).find((child) => child.type === "Module") : null)
-            || node;
-    }
 }

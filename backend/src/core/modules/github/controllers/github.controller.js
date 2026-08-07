@@ -292,6 +292,26 @@ class GithubControllers
         }
     };
 
+    listImportedRepositories = async (req, res) =>
+    {
+        const repositories = await Repository.find({ owner: req.user.sub })
+            .select("githubRepositoryId name fullName language defaultBranch importMode indexing createdAt updatedAt")
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        return res.json(repositories.map((repository) => ({
+            id: String(repository.githubRepositoryId),
+            name: repository.name,
+            fullName: repository.fullName,
+            language: repository.language || null,
+            defaultBranch: repository.defaultBranch,
+            importMode: repository.importMode,
+            indexing: repository.indexing,
+            createdAt: repository.createdAt,
+            updatedAt: repository.updatedAt,
+        })));
+    };
+
     importRepository = async (req, res) =>
     {
         const repositoryId = Number(req.params.repositoryId);
@@ -302,6 +322,16 @@ class GithubControllers
         }
         if (!["INTELLIGENCE", "DOCUMENTATION"].includes(mode)) {
             return res.status(400).json({ message: "mode must be INTELLIGENCE or DOCUMENTATION." });
+        }
+
+        const alreadyImported = await Repository.findOne({ owner: req.user.sub, githubRepositoryId: repositoryId })
+            .select("indexing.status")
+            .lean();
+        if (alreadyImported) {
+            return res.status(409).json({
+                message: "This repository has already been imported. Retry it from Imported repositories if processing failed.",
+                status: alreadyImported.indexing?.status,
+            });
         }
 
         const installation = await GithubAppStatus.findOne({ userId: req.user.sub, installed: true });
@@ -330,14 +360,15 @@ class GithubControllers
 
         let savedRepository;
         try {
+
             const job = {
                 userId: req?.user?.sub,
                 repositoryId: repositoryId,
                 installationId: installation?.installationId,
-                url: repository.url,
+                cloneUrl: repository.clone_url,
             }
             savedRepository = await Repository.findOneAndUpdate(
-                { githubRepositoryId: repositoryId },
+                { owner: req.user.sub, githubRepositoryId: repositoryId },
                 {
                     $set: {
                         ...toRepositoryDocument(repository, req.user.sub, installation.installationId),
@@ -383,6 +414,35 @@ class GithubControllers
             status: savedRepository.indexing.status,
             message: "Repository imported and queued for processing.",
         });
+    };
+
+    retryRepositoryImport = async (req, res) =>
+    {
+        const repositoryId = Number(req.params.repositoryId);
+        if (!Number.isSafeInteger(repositoryId)) return res.status(400).json({ message: "repositoryId must be a valid GitHub repository ID." });
+
+        const repository = await Repository.findOne({ owner: req.user.sub, githubRepositoryId: repositoryId });
+        if (!repository) return res.status(404).json({ message: "Imported repository was not found." });
+        if (repository.indexing?.status !== "FAILED") return res.status(409).json({ message: "Only failed repositories can be retried.", status: repository.indexing?.status });
+
+        try {
+            const accepted = await RabbitMqUtils.publishToQueue("repo-analysis", {
+                userId: String(req.user.sub),
+                repositoryId,
+                installationId: repository.installationId,
+                cloneUrl: repository.cloneUrl,
+            });
+            if (!accepted) throw new Error("RabbitMQ did not accept the repository-analysis retry.");
+            repository.indexing.status = "QUEUED";
+            repository.indexing.progress = 0;
+            repository.indexing.startedAt = null;
+            repository.indexing.completedAt = null;
+            repository.indexing.lastError = null;
+            await repository.save();
+        } catch {
+            return res.status(503).json({ message: "Repository could not be queued for retry." });
+        }
+        return res.json({ id: String(repository.githubRepositoryId), status: repository.indexing.status, message: "Repository retry queued." });
     };
 
     getInstallationTokenForWorker = async (req, res) =>
